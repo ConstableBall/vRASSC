@@ -27,44 +27,16 @@ resources:
       flavor: '${input.size}'
       networks:
         - network: '${resource.VRANET.id}'
-      netGateway: 192.168.110.1
-      netDNS1: 192.168.110.10
-      netDomain: corp.local
       constraints:
         - tag: 'env:vsphere'
       cloudConfig: |
         runcmd:
-          - sed -i "s/BOOTPROTO=dhcp/BOOTPROTO=static/g" /etc/sysconfig/network-scripts/ifcfg-ens192
-          - echo IPADDR=${input.ipaddress} >> /etc/sysconfig/network-scripts/ifcfg-ens192
-          - echo GATEWAY=${self.netGateway} >> /etc/sysconfig/network-scripts/ifcfg-ens192
-          - echo DOMAIN=${self.netDomain} >> /etc/sysconfig/network-scripts/ifcfg-ens192
-          - echo DNS1=${self.netDNS1} >> /etc/sysconfig/network-scripts/ifcfg-ens192
-          - echo PREFIX=24 >> /etc/sysconfig/network-scripts/ifcfg-ens192
           - sudo hostnamectl set-hostname ${resource.VRAVM.resourceName}
           - systemctl restart network
-          - echo 'search ${self.netDomain}' > /etc/resolv.conf
-          - echo 'nameserver ${self.netDNS1}' >> /etc/resolv.conf
-
-          - sleep 30
-
-          - realm discover ${self.netDomain} > /root/realmalto
-          - echo VMware1! | realm join -U administrator ${self.netDomain}
-          - realm deny -a
-          - realm permit administrator@${self.netDomain}
           
           - sed -i -e "\$a${input.username} ALL=(ALL) ALL" /etc/sudoers
-          - echo "%${self.netDomain}\\\\administrators ALL=(ALL) ALL" >> /etc/sudoers
-          
-          - sed -i "s/use_fully_qualified_names = True/use_fully_qualified_names = False/g" /etc/sssd/sssd.conf
-          - systemctl daemon-reload
-          - systemctl stop sssd
-          - systemctl start sssd
-          
-          - curl -L https://bootstrap.saltstack.com -o /root/install_salt.sh
-          - sudo chmod 755 /root/install_salt.sh
-          - sudo sh /root/install_salt.sh -P -A ${propgroup.SaltStackConfiguration.masterAddress} -i ${to_upper(resource.VRAVM.resourceName)}
-
-          - sudo salt-call grains.set 'vravm' 'true'
+          - echo "%${self.netDomain}\\\\administrators ALL=(ALL) ALL" >> /etc/sudoers       
+        
   VRANET:
     type: Cloud.Network
     properties:
